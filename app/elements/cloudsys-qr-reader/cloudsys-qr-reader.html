@@ -1,0 +1,88 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<script src="../../bower_components/qcode-decoder/build/qcode-decoder.min.js"></script>
+<dom-module id="cloudsys-qr-reader">
+  <style>
+    :host {
+      display: block;
+    }
+  </style>
+  <template>
+    <div>Hello from <span>{{foo}}</span></div>
+    <video id="video"  width="320" height="240" autoplay></video>
+    <select id="cameraSelect"></select>
+    <button id="reset">Reset</button>
+    <button id="stop" >Stop</button>
+    <p id="result"></p>
+  </template>
+</dom-module>
+
+<script>
+(function() {
+  Polymer({
+    is: 'cloudsys-qr-reader',
+    ready: function() {
+        console.log(this.querySelector('video'));
+        var qr = new QCodeDecoder();
+        var elems = {
+            selector: this.querySelector('select'),
+            video: this.querySelector('video'),
+            reset: this.$.reset,
+            stop: this.$.stop,
+            result: this.$.result
+        };
+        if (!(qr.isCanvasSupported() && qr.hasGetUserMedia())) {
+          alert('Your browser doesn\'t match the required specs.');
+          throw new Error('Canvas and getUserMedia are required');
+        }
+        function resultHandler (err, result) {
+          if (err)
+            return console.log(err.message);
+          alert(result);
+        }
+        qr.getVideoSources(function (err, sources) {
+          if (err || (sources && !sources.length)) {
+            elems.selector.remove();
+            qr.decodeFromCamera(elems.video, resultHandler);
+            return;
+          }
+          sources.forEach(function (source) {
+            var option = document.createElement('option');
+            option.value = source.id;
+            option.text = source.facing || 'default';
+            elems.selector.add(option);
+          });
+          elems.selector.onchange = function () {
+              //alert('entro al cambio');
+              //alert(elems.selector.selectedOptions[0].value);
+            qr.stop();
+            qr.setSourceId(elems.selector.selectedOptions[0].value);
+            qr.decodeFromCamera(elems.video, resultHandler);
+          };
+          elems.result.innerHTML = 'Your browser is currently exposing ' +
+                                    sources.length + ' cameras - use the ' +
+                                    'dropdown above to select which you want ' +
+                                    'to use';
+          elems.selector.onchange();
+          qr.decodeFromCamera(elems.video, resultHandler);
+        });
+    },
+    properties: {
+      foo: {
+        type: String,
+        value: 'bar',
+        notify: true
+      }
+    }
+  });
+})();
+</script>
